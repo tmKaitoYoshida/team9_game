@@ -1,73 +1,70 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.Windows;
 
-public class PlayerController : MonoBehaviour
+public class PlayerControl : MonoBehaviour
 {
-    public float moveSpeed = 5f;
-    public float jumpForce = 10f;
-    public bool isGrounded;
-    public LayerMask groundLayer;
-
-    private Rigidbody2D rb;
-    private bool isCrouching = false;
+    private Rigidbody2D rb2d;
+    private float x_val;
+    private float speed;
+    public float inputSpeed;
+    public float jumpingPower;
+    private Animator _anim;
+    public GroundCheck ground;
+    private bool isGround = false;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
-    }
+        rb2d = GetComponent<Rigidbody2D>();
 
+        _anim = GetComponent<Animator>();
+    }
     void Update()
     {
-        // ジャンプ
-        if (Input.GetKeyDown(KeyCode.W) && isGrounded)
-        {
-            Jump();
-        }
+        x_val = UnityEngine.Input.GetAxis("Horizontal");
 
-        // 左右移動
-        float horizontalInput = Input.GetAxis("Horizontal");
-        Move(horizontalInput);
 
-        // しゃがみ
-        if (Input.GetKeyDown(KeyCode.S))
+        _anim.SetBool("Run", x_val != 0);
+
+        //Spaceが押された場合
+        if (UnityEngine.Input.GetKeyDown("space") && isGround)
         {
-            Crouch();
-        }
-        else if (Input.GetKeyUp(KeyCode.S))
-        {
-            StandUp();
+            rb2d.AddForce(Vector2.up * jumpingPower);
         }
     }
-
     void FixedUpdate()
     {
-        // 地面に接触しているかどうかの判定
-        isGrounded = Physics2D.OverlapCircle(transform.position, 0.2f, groundLayer);
+
+        isGround = ground.IsGround();
+
+        //待機
+        if (x_val == 0)
+        {
+            speed = 0;
+        }
+        //右に移動
+        else if (x_val > 0)
+        {
+            speed = inputSpeed;
+            //右方向を向く
+            transform.localScale = new Vector3((float)0.1, (float)0.1, (float)0.1);
+        }
+        //左に移動
+        else if (x_val < 0)
+        {
+            speed = inputSpeed * -1;
+            //左方向を向く
+            transform.localScale = new Vector3((float)-0.1, (float)0.1, (float)0.1);
+        }
+
+        // キャラクターを移動 Vextor2(x軸スピード、y軸スピード(元のまま))
+        rb2d.velocity = new Vector2(speed, rb2d.velocity.y);
     }
 
-    void Jump()
+    public void Death()
     {
-        rb.velocity = new Vector2(rb.velocity.x, jumpForce);
-    }
-
-    void Move(float horizontalInput)
-    {
-        Vector2 movement = new Vector2(horizontalInput * moveSpeed, rb.velocity.y);
-        rb.velocity = movement;
-    }
-
-    void Crouch()
-    {
-        isCrouching = true;
-        // しゃがむ処理を追加（例: Colliderのサイズ変更など）
-    }
-
-    void StandUp()
-    {
-        isCrouching = false;
-        // 立ち上がる処理を追加（例: Colliderのサイズ戻すなど）
+        SceneManager.LoadScene("Gameover");
     }
 }
-
-
